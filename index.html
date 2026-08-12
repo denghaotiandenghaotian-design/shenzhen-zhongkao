@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 安全策略：禁止内联脚本与第三方脚本（仅放行 Mermaid CDN），阻断 XSS 数据外泄面 -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https:; object-src 'none'; base-uri 'self'" />
+  <title>深圳中考 AI 复习系统</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app-shell">
+    <!-- 侧边导航 -->
+    <aside id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">深</div>
+        <div class="brand-text">
+          <strong>深圳中考</strong>
+          <span>AI 复习系统</span>
+        </div>
+      </div>
+      <nav id="nav">
+        <button class="nav-item" data-view="overview">🏠 总览</button>
+        <button class="nav-item" data-view="bank">📚 考点库管理</button>
+        <button class="nav-item" data-view="practice">✍️ 智能刷题</button>
+        <button class="nav-item" data-view="wrong">🔁 错题回顾</button>
+        <button class="nav-item" data-view="plan">🗓️ 复习计划</button>
+        <button class="nav-item" data-view="mindmap">🧠 思维导图</button>
+        <button class="nav-item" data-view="exam">📝 模拟考试</button>
+        <button class="nav-item" data-view="past">📕 真题详解</button>
+        <button class="nav-item" data-view="knowledge">📖 知识体系</button>
+        <button class="nav-item" data-view="teachers">🌟 名师专栏</button>
+        <button class="nav-item" data-view="physvideo">🎬 物理名师课</button>
+        <button class="nav-item" data-view="olympiad">🧮 初中奥数</button>
+        <button class="nav-item" data-view="physcourse">📘 物理教程</button>
+        <button class="nav-item" data-view="engwords">🔤 英语单词</button>
+        <button class="nav-item" data-view="classical">📜 文言文专项</button>
+        <button class="nav-item" data-view="recite">✅ 背诵打卡</button>
+        <button class="nav-item" data-view="prompts">📜 提示词库</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="muted">教材版本</span>
+        <div class="ver-tags">
+          <span>英·沪教</span><span>语·人教</span><span>数·北师大</span><span>物·人教</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主区域 -->
+    <main id="main">
+      <header id="topbar">
+        <div id="view-title">总览</div>
+        <div class="topbar-right">
+          <div id="countdown" class="countdown" title="距中考">
+            <span class="cd-num">--</span><span class="cd-label">天</span>
+          </div>
+          <button id="btn-settings" class="icon-btn" title="设置">⚙️</button>
+        </div>
+      </header>
+      <section id="app"></section>
+    </main>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head"><h3>系统设置</h3><button class="icon-btn" data-close>✕</button></div>
+      <div class="modal-body">
+        <h4>深圳中考参数</h4>
+        <label>中考日期 <input id="set-examDate" type="date" /></label>
+        <label>每日可用时长(小时) <input id="set-dailyHours" type="number" min="1" max="12" /></label>
+        <label>目标总分(满分610) <input id="set-targetScore" type="number" min="0" max="610" /></label>
+        <label>目标学校 <input id="set-targetSchool" type="text" placeholder="选填" /></label>
+        <h4>AI 增强（可选·留空则用内置逻辑）</h4>
+        <label>API Key <input id="set-apiKey" type="password" placeholder="sk-...（可选）" /></label>
+        <label>API Base <input id="set-apiBase" type="text" placeholder="https://api.openai.com/v1/chat/completions" /></label>
+        <label>模型 <input id="set-apiModel" type="text" placeholder="gpt-4o-mini" /></label>
+        <p class="muted small">配置密钥后，刷题/计划/模考等模块会出现「✨ AI 生成」按钮，用嵌入提示词驱动大模型动态出题与扩展。</p>
+        <h4>数据备份（跨设备 / 多人共享同一份数据）</h4>
+        <div class="modal-actions">
+          <button id="btn-export-all" class="btn btn-ghost">导出全部数据</button>
+          <button id="btn-import-all" class="btn btn-ghost">导入备份</button>
+          <button id="btn-backup-folder" class="btn btn-primary">📁 备份到本地文件夹</button>
+          <input type="file" id="set-file" accept="application/json" style="display:none" />
+        </div>
+        <p class="muted small">「📁 备份到本地文件夹」：用 Chrome/Edge 打开时点此，选择 <b>D:\考试</b> 文件夹即可把错题/计划/打卡/知识点掌握度等全部学习数据直接写入该文件夹（位于 backup\ 子目录）。不支持的浏览器可用「导出全部数据」下载 JSON 后手动移入。</p>
+        <div class="modal-actions">
+          <button id="btn-reset" class="btn btn-danger">重置全部数据</button>
+          <button id="btn-save-settings" class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/prompts.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/mockgen.js"></script>
+  <script src="js/papers.js"></script>
+  <script src="js/teachers.js"></script>
+  <script src="js/physvideo.js"></script>
+  <script src="js/olympiad.js"></script>
+  <script src="js/physcourse.js"></script>
+  <script src="js/english-words.js"></script>
+  <script src="js/classical-chinese.js"></script>
+  <script src="js/app.js"></script>
+  <!-- 打印容器：一键导出 PDF 时注入内容，@media print 仅渲染此区 -->
+  <div id="print-root" aria-hidden="true"></div>
+</body>
+</html>
