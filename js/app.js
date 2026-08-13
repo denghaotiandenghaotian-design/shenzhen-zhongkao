@@ -31,7 +31,7 @@
     render();
   }
 
-  function setView(v) { view = v; $$('#nav .nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === v)); const t = { overview: '总览', bank: '考点库管理', practice: '智能刷题', wrong: '错题回顾', plan: '复习计划', mindmap: '知识点思维导图', exam: '模拟考试', recite: '背诵打卡', prompts: '提示词库', engwords: '英语单词记忆', classical: '文言文专项' }[v]; if (t) $('#view-title').textContent = t; render(); }
+  function setView(v) { view = v; $$('#nav .nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === v)); const t = { overview: '总览', bank: '考点库管理', practice: '智能刷题', wrong: '错题回顾', plan: '复习计划', mindmap: '知识点思维导图', exam: '模拟考试', recite: '背诵打卡', prompts: '提示词库', engwords: '英语单词记忆', classical: '文言文专项', predict2027: '2027考试预测' }[v]; if (t) $('#view-title').textContent = t; render(); }
 
   function refreshCountdown() {
     const d = S.getSettings().examDate; const n = U.daysBetween(ZK_TODAY(), d);
@@ -127,7 +127,7 @@
       plan: renderPlan, mindmap: renderMindmap, exam: renderExam, past: renderPast,
       knowledge: renderKnowledge, teachers: renderTeachers, recite: renderRecite, prompts: renderPrompts,
       physvideo: renderPhysVideo, olympiad: renderOlympiad, physcourse: renderPhysCourse,
-      engwords: renderEngWords, classical: renderClassical
+      engwords: renderEngWords, classical: renderClassical, predict2027: renderPredict2027
     };
     (map[view] || renderOverview)();
   }
@@ -1573,6 +1573,141 @@
       '<p><b>背景：</b>' + U.esc(p.背景) + '</p><p><b>主旨：</b>' + U.esc(p.主旨) + '</p>' +
       '<p><b>逐句讲解：</b>' + p.段.map((d, i) => '<div style="margin-bottom:8px">' + (i + 1) + '. ' + U.esc(d.原) + '<br>译：' + U.esc(d.译) + '</div>').join('') + '</p>' +
       '<p><b>重点词：</b>' + p.重点.map(k => U.esc(k.词) + '：' + U.esc(k.释)).join('；') + '</p>';
+  }
+
+  /* ============================================================
+   * 新增板块：2027年考试预测（深圳中考）
+   * 知识点预测 / 热点考点 / 题目预测 / 3套预测模拟卷
+   * ========================================================== */
+  let predState = { tab: 'intro', subject: '', examIdx: 0, showAns: false };
+  function tabName(t) { return { intro: '板块导览', kp: '知识点预测', hot: '热点考点', qt: '题目预测', exam: '预测模拟卷' }[t] || '预测'; }
+  function renderPredict2027() {
+    const D = window.ZK_PREDICT2027;
+    const tabs = [['intro', '板块导览'], ['kp', '知识点预测'], ['hot', '热点考点'], ['qt', '题目预测'], ['exam', '预测模拟卷']];
+    $('#app').innerHTML = `
+      <div class="card">
+        <h3>🔮 2027年考试预测 <span class="muted small">｜ 深圳中考 · 基于公开信息的预测性学习参考</span></h3>
+        <div class="grade-tabs" id="pred-tabs">
+          ${tabs.map(t => `<button class="gtab ${predState.tab === t[0] ? 'on' : ''}" data-tab="${t[0]}">${t[1]}</button>`).join('')}
+          <select id="pred-sub" style="margin-left:auto"><option value="">全部科目</option>${D.subjects.map(s => `<option ${predState.subject === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
+          <button class="btn btn-ghost btn-sm no-print" id="pred-pdf" style="margin-left:8px">导出PDF</button>
+        </div>
+        <div id="pred-out"></div>
+      </div>`;
+    $$('#pred-tabs [data-tab]').forEach(b => b.onclick = () => { predState.tab = b.dataset.tab; if (b.dataset.tab !== 'exam') predState.subject = ''; renderPredict2027(); });
+    $('#pred-sub').onchange = () => { predState.subject = $('#pred-sub').value; renderPredBody(); };
+    $('#pred-pdf').onclick = () => { U.printDoc('2027考试预测_' + tabName(predState.tab), buildPredictHtml()); };
+    renderPredBody();
+  }
+  function renderPredBody() {
+    if (predState.tab === 'intro') return renderPredIntro();
+    if (predState.tab === 'kp') return renderPredKp();
+    if (predState.tab === 'hot') return renderPredHot();
+    if (predState.tab === 'qt') return renderPredQt();
+    return renderPredExam();
+  }
+  function renderPredIntro() {
+    const M = window.ZK_PREDICT2027.META;
+    $('#pred-out').innerHTML = `
+      <div class="warn-box no-print">⚠️ ${U.esc(M.disclaimer)}</div>
+      <div class="pian-box">
+        <div class="pian-sec"><b>📋 深圳中考现行分值结构（总分 ${M.total}）</b>
+          <div class="pian-kp">${M.score.map(s => `<span class="chip low">${U.esc(s.k)}：${s.v}分${s.note ? '（' + U.esc(s.note) + '）' : ''}</span>`).join('')}</div>
+        </div>
+        <div class="pian-sec"><b>🧭 2027 命题整体趋势</b><ul class="pk-list">${M.trends.map(t => `<li>${U.esc(t)}</li>`).join('')}</ul></div>
+        <div class="pian-sec"><b>🗂️ 本板块四个维度</b>
+          <p class="muted small">① 知识点预测：高频核心与可能新增/强化的考点；② 热点考点预测：结合时事政策与社会动态；③ 题目预测：可能考查的题型与方式；④ 预测模拟卷：3 套完整预测题（含标准答案与详细解析）。</p>
+        </div>
+        <div class="pian-sec"><b>📤 导出</b><p class="muted small">每个维度右上角「导出PDF」可一键输出当前视图，便于打印复习。</p></div>
+      </div>`;
+  }
+  function renderPredKp() {
+    const D = window.ZK_PREDICT2027;
+    let arr = D.KNOWLEDGE;
+    if (predState.subject) arr = arr.filter(x => x.subject === predState.subject);
+    $('#pred-out').innerHTML = arr.length ? `<table class="zi-table"><thead><tr><th>科目</th><th>类型</th><th>预测知识点</th><th>依据</th><th>复习建议</th></tr></thead><tbody>` +
+      arr.map(x => `<tr><td><b>${U.esc(x.subject)}</b></td><td>${x.level === '新增强化' ? '<span class="chip ver">新增强化</span>' : '<span class="chip mid">核心</span>'}</td><td>${U.esc(x.point)}</td><td class="muted small">${U.esc(x.basis)}</td><td>${U.esc(x.advice)}</td></tr>`).join('') + `</tbody></table>`
+      : '<p class="muted">该科目暂无预测条目。</p>';
+  }
+  function renderPredHot() {
+    const D = window.ZK_PREDICT2027;
+    let arr = D.HOTSPOTS;
+    if (predState.subject) arr = arr.filter(x => x.kd.indexOf(predState.subject) >= 0);
+    $('#pred-out').innerHTML = arr.length ? arr.map(x => `
+      <div class="zi-card"><div class="zi-word">🔥 ${U.esc(x.theme)}</div>
+        <div class="zi-body">
+          <div class="zi-row"><span class="zi-yi">背景</span><span class="zi-li">${U.esc(x.background)}</span></div>
+          <div class="zi-row"><span class="zi-yi">可能考点</span><span class="zi-li">${U.esc(x.kd)}</span></div>
+        </div></div>`).join('')
+      : '<p class="muted">该科目暂无热点条目。</p>';
+  }
+  function renderPredQt() {
+    const D = window.ZK_PREDICT2027;
+    let arr = D.QTYPES;
+    if (predState.subject) arr = arr.filter(x => x.sub === predState.subject);
+    $('#pred-out').innerHTML = arr.length ? arr.map(x => `
+      <div class="zi-card"><div class="zi-word">📐 ${U.esc(x.type)} <span class="chip">${U.esc(x.sub)}</span></div>
+        <div class="zi-body">
+          <div class="zi-row"><span class="zi-yi">描述</span><span class="zi-li">${U.esc(x.desc)}</span></div>
+          <div class="zi-row"><span class="zi-yi">示例</span><span class="zi-li">${U.esc(x.ex)}</span></div>
+        </div></div>`).join('')
+      : '<p class="muted">该科目暂无题型条目。</p>';
+  }
+  function renderPredExam() {
+    const D = window.ZK_PREDICT2027;
+    const ex = D.EXAMS[predState.examIdx];
+    $('#pred-out').innerHTML = `
+      <div class="section-bar">
+        <select id="pred-exam">${D.EXAMS.map((e, i) => `<option value="${i}" ${i === predState.examIdx ? 'selected' : ''}>第${e.setNo}套 · ${U.esc(e.title)}</option>`).join('')}</select>
+        <span class="chip">覆盖：${U.esc(ex.coverage)}</span>
+        <label class="muted small" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="pred-ans" ${predState.showAns ? 'checked' : ''} style="width:auto"> 显示答案与解析</label>
+      </div>
+      <div id="pred-exam-out"></div>`;
+    $('#pred-exam').onchange = () => { predState.examIdx = +$('#pred-exam').value; renderPredExam(); };
+    $('#pred-ans').onchange = () => { predState.showAns = $('#pred-ans').checked; renderPredExamQs(); };
+    renderPredExamQs();
+  }
+  function renderPredExamQs() {
+    const D = window.ZK_PREDICT2027;
+    const ex = D.EXAMS[predState.examIdx];
+    const show = predState.showAns;
+    $('#pred-exam-out').innerHTML = ex.sections.map(sec => `
+      <div class="pian-sec"><b>📘 ${U.esc(sec.name)}</b>${sec.qs.map(q => {
+        const opt = q.options ? `<div class="ex-opts">${q.options.map(o => `<div class="ex-opt">${U.esc(o)}</div>`).join('')}</div>` : '';
+        const ans = show ? `<div class="mem-b"><b>✅ 答案：</b>${U.esc(q.answer)}</div><div class="mem-b"><b>🔎 解析：</b>${U.esc(q.analysis)}</div><div class="muted small">考点：${U.esc(q.point)} · ${U.esc(q.type)}</div>` : '<div class="muted small">（勾选上方“显示答案与解析”查看）</div>';
+        return `<div class="prob-card"><div class="prob-no">${q.no}.</div><div class="prob-stem">${U.esc(q.stem)}</div>${opt}${ans}</div>`;
+      }).join('')}</div>`).join('');
+  }
+  function buildPredictHtml() {
+    const D = window.ZK_PREDICT2027;
+    const t = predState.tab;
+    if (t === 'intro') {
+      const M = D.META;
+      return '<h3>2027年考试预测 · 板块导览</h3><p class="muted">' + U.esc(M.disclaimer) + '</p>' +
+        '<p><b>深圳中考现行分值（总分' + M.total + '）：</b>' + M.score.map(s => U.esc(s.k) + ' ' + s.v + '分').join('；') + '</p>' +
+        '<p><b>整体趋势：</b></p><ul>' + M.trends.map(x => '<li>' + U.esc(x) + '</li>').join('') + '</ul>';
+    }
+    if (t === 'kp') {
+      let arr = D.KNOWLEDGE; if (predState.subject) arr = arr.filter(x => x.subject === predState.subject);
+      return '<h3>知识点预测</h3>' + (predState.subject ? '<p class="muted">科目：' + U.esc(predState.subject) + '</p>' : '') +
+        arr.map(x => '<div style="margin-bottom:8px"><b>[' + U.esc(x.subject) + '·' + U.esc(x.level) + '] ' + U.esc(x.point) + '</b><br>依据：' + U.esc(x.basis) + '<br>建议：' + U.esc(x.advice) + '</div>').join('');
+    }
+    if (t === 'hot') {
+      let arr = D.HOTSPOTS; if (predState.subject) arr = arr.filter(x => x.kd.indexOf(predState.subject) >= 0);
+      return '<h3>热点考点预测</h3>' + arr.map(x => '<div style="margin-bottom:10px"><b>🔥 ' + U.esc(x.theme) + '</b><br>背景：' + U.esc(x.background) + '<br>可能考点：' + U.esc(x.kd) + '</div>').join('');
+    }
+    if (t === 'qt') {
+      let arr = D.QTYPES; if (predState.subject) arr = arr.filter(x => x.sub === predState.subject);
+      return '<h3>可能的题目预测</h3>' + arr.map(x => '<div style="margin-bottom:10px"><b>📐 ' + U.esc(x.type) + '</b><br>描述：' + U.esc(x.desc) + '<br>示例：' + U.esc(x.ex) + '</div>').join('');
+    }
+    // exam
+    const ex = D.EXAMS[predState.examIdx];
+    return '<h3>' + U.esc(ex.title) + '</h3><p class="muted">覆盖：' + U.esc(ex.coverage) + '</p>' +
+      ex.sections.map(sec => '<h4>' + U.esc(sec.name) + '</h4>' + sec.qs.map(q =>
+        '<div style="margin-bottom:12px"><b>' + q.no + '.</b> ' + U.esc(q.stem) +
+        (q.options ? '<br>' + q.options.map(o => U.esc(o)).join('<br>') : '') +
+        '<br><b>答案：</b>' + U.esc(q.answer) + '<br><b>解析：</b>' + U.esc(q.analysis) + ' <span class="muted">［' + U.esc(q.point) + '·' + U.esc(q.type) + '］</span></div>'
+      ).join('')).join('');
   }
 
   document.addEventListener('DOMContentLoaded', init);
