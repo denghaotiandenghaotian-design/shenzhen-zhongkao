@@ -259,6 +259,10 @@ tbody tr:hover{background:var(--surface-2)}
 .lesson-pts{display:flex;gap:5px;flex-wrap:wrap}
 .vid-btns{display:flex;gap:6px;flex:none}
 .prob-card{border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:var(--surface);box-shadow:var(--shadow);margin-bottom:12px}
+.prob-no{display:inline-block;min-width:22px;font-weight:800;color:var(--primary)}
+.prob-stem{display:inline;line-height:1.7}
+.pk-list{margin:6px 0 0 18px;padding:0}
+.pk-list li{margin:4px 0;line-height:1.6;font-size:13px}
 .prob-top{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .prob-actions{margin-top:4px}
 .prob-sol{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px;line-height:1.7}
